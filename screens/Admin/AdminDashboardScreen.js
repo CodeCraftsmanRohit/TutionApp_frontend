@@ -3,15 +3,15 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useContext, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
 import API from '../../services/api';
@@ -234,171 +234,257 @@ export default function AdminDashboardScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F4F7FF', // soft cool background for contrast
   },
+
+  // Loading / center
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
-    color: '#666',
+    marginTop: 12,
+    color: '#55607A',
+    fontWeight: '600',
   },
+
+  /* ---------- Platform Stats ---------- */
   statsContainer: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginHorizontal: 14,
+    marginTop: 12,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    // elevated card look
+    shadowColor: '#6A5CFF',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 6,
   },
   statsTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    color: '#102034',
     marginBottom: 12,
+    letterSpacing: 0.2,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 12,
   },
+
   statCard: {
     width: '48%',
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: '#FBFDFF',
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    // subtle glass effect
+    borderWidth: 1,
+    borderColor: 'rgba(74,85,185,0.06)',
+    shadowColor: '#4750ff',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
   },
   statCardNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginVertical: 4,
+    fontSize: 22,
+    fontWeight: '900',
+    marginVertical: 6,
+    color: '#2B2FC7',
   },
   statCardLabel: {
     fontSize: 12,
-    color: '#666',
+    color: '#6B7280',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
+
+  /* ---------- Users list ---------- */
   usersList: {
-    padding: 16,
+    padding: 14,
+    paddingBottom: 28,
   },
   usersTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     marginBottom: 12,
+    color: '#0F1724',
   },
+
   userCard: {
-    backgroundColor: '#f8f9fa',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 14,
     marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#1976D2',
+    // bold accent strip on the left to make cards pop
+    borderLeftWidth: 6,
+    borderLeftColor: '#7C5CFF',
+    // soft elevated shadow
+    shadowColor: '#7C5CFF',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 6,
   },
+
   userHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   userAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#F1F5FF',
+    // avatar shadow
+    shadowColor: '#7C5CFF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 4,
   },
   avatarPlaceholder: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#E6EEF9',
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   userInfo: {
     flex: 1,
     marginLeft: 12,
   },
   userName: {
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 16,
+    color: '#08112A',
   },
   userEmail: {
-    color: '#666',
-    fontSize: 14,
-  },
-  userRole: {
-    color: '#999',
-    fontSize: 12,
+    color: '#5E6C84',
+    fontSize: 13,
     marginTop: 2,
   },
+  userRole: {
+    color: '#8893A8',
+    fontSize: 12,
+    marginTop: 6,
+  },
+
   userStats: {
     alignItems: 'flex-end',
+    marginLeft: 8,
   },
   statText: {
     fontSize: 12,
-    color: '#666',
+    color: '#4B5563',
+    fontWeight: '700',
   },
+
+  /* ---------- Recent activity ---------- */
   recentActivity: {
     marginBottom: 12,
+    marginTop: 6,
   },
   activityTitle: {
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 6,
+    color: '#122433',
   },
   activityText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 8,
+    fontSize: 13,
+    color: '#55607A',
+    marginLeft: 6,
+    marginBottom: 4,
   },
   noActivity: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 13,
+    color: '#98A0AE',
     fontStyle: 'italic',
   },
+
+  /* ---------- Quick stats row ---------- */
   quickStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 12,
-    paddingVertical: 8,
+    marginBottom: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#F0F3FF',
+    marginTop: 6,
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
   },
   statNumber: {
-    fontWeight: 'bold',
+    fontWeight: '900',
     fontSize: 16,
+    color: '#1F2D5C',
   },
   statLabel: {
-    fontSize: 10,
-    color: '#666',
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 4,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
+
+  /* ---------- Admin action buttons ---------- */
   adminActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    marginTop: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 16,
-    padding: 6,
-    borderRadius: 4,
-    backgroundColor: '#f0f0f0',
+    marginLeft: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F3F6FF',
+    borderWidth: 1,
+    borderColor: 'rgba(124,92,255,0.08)',
+    shadowColor: '#7C5CFF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 3,
   },
   deleteButton: {
-    backgroundColor: '#ffebee',
+    backgroundColor: '#FFF6F7',
+    borderColor: 'rgba(231,76,60,0.06)',
   },
   actionText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: '#3498db',
+    marginLeft: 8,
+    fontSize: 13,
+    color: '#3B82F6',
+    fontWeight: '700',
   },
   deleteText: {
-    color: '#e74c3c',
+    color: '#E74C3C',
   },
+
+  /* ---------- Empty state ---------- */
   emptyContainer: {
     alignItems: 'center',
     padding: 40,
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: '#7A8599',
     marginTop: 10,
   },
 });

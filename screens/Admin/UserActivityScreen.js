@@ -3,13 +3,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useContext, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
 import API from '../../services/api';
@@ -168,154 +168,243 @@ export default function UserActivityScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F4F8FF', // soft cool background
   },
+
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   loadingText: {
-    marginTop: 10,
-    color: '#666',
+    marginTop: 12,
+    color: '#51607A',
+    fontWeight: '700',
   },
+
   errorText: {
     fontSize: 16,
-    color: '#666',
+    color: '#7A8797',
+    fontWeight: '700',
   },
+
+  /* ---------- User header ---------- */
   userHeader: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    padding: 18,
+    margin: 14,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    // floating card look
+    shadowColor: '#6A5CFF',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 8,
+    alignItems: 'center',
   },
+
   userAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#F1F6FF',
+    // subtle ring shadow
+    shadowColor: '#7C5CFF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 5,
   },
+
   avatarPlaceholder: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#E9F1FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   userInfo: {
     flex: 1,
     marginLeft: 16,
     justifyContent: 'center',
   },
+
   userName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    color: '#08122A',
     marginBottom: 4,
   },
+
   userEmail: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 2,
-  },
-  userRole: {
     fontSize: 14,
-    color: '#1976D2',
-    fontWeight: '500',
-    marginBottom: 2,
+    color: '#5E6C84',
+    marginBottom: 6,
+    fontWeight: '600',
   },
+
+  userRole: {
+    fontSize: 13,
+    color: '#6B8AE0',
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+
   userJoined: {
     fontSize: 12,
-    color: '#999',
+    color: '#98A3B3',
   },
+
   userLastActive: {
     fontSize: 12,
-    color: '#999',
+    color: '#98A3B3',
   },
+
+  /* ---------- Sections ---------- */
   section: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    // light elevation
+    shadowColor: '#4F5D9B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.03,
+    shadowRadius: 14,
+    elevation: 4,
   },
+
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '900',
     marginBottom: 12,
-    color: '#2c3e50',
+    color: '#0F2340',
+    letterSpacing: 0.2,
   },
+
+  /* ---------- Posts cards ---------- */
   postCard: {
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: '#F7FBFF',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderLeftWidth: 6,
+    borderLeftColor: '#7CC7FF',
+    // soft shadow
+    shadowColor: '#7CC7FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
+
   postTitle: {
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 16,
-    marginBottom: 4,
+    color: '#0B1830',
+    marginBottom: 6,
   },
+
   postDetails: {
     fontSize: 14,
-    color: '#666',
+    color: '#52607A',
     marginBottom: 8,
   },
+
   postStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
+
   postStat: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#556077',
+    fontWeight: '700',
   },
+
   postDate: {
     fontSize: 12,
-    color: '#999',
+    color: '#98A3B3',
   },
+
+  /* ---------- Liked posts ---------- */
   likedPostCard: {
-    backgroundColor: '#fff8e1',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#ffd54f',
+    backgroundColor: '#FFF8EC',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderLeftWidth: 6,
+    borderLeftColor: '#FFD37A',
+    shadowColor: '#FFB84D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 3,
   },
+
   likedPostTitle: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 4,
+    fontWeight: '800',
+    fontSize: 15,
+    marginBottom: 6,
+    color: '#2B2A20',
   },
+
   likedPostAuthor: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  likedPostDate: {
-    fontSize: 11,
-    color: '#999',
-  },
-  commentCard: {
-    backgroundColor: '#e8f5e8',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#4caf50',
-  },
-  commentPost: {
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
+    color: '#6B7280',
     marginBottom: 4,
   },
+
+  likedPostDate: {
+    fontSize: 12,
+    color: '#98A3B3',
+  },
+
+  /* ---------- Comments ---------- */
+  commentCard: {
+    backgroundColor: '#F2FFF5',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderLeftWidth: 6,
+    borderLeftColor: '#4CD37A',
+    shadowColor: '#4CD37A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+
+  commentPost: {
+    fontWeight: '800',
+    fontSize: 14,
+    marginBottom: 6,
+    color: '#0B2A18',
+  },
+
   commentText: {
     fontSize: 14,
-    marginBottom: 4,
-    lineHeight: 18,
+    marginBottom: 6,
+    lineHeight: 20,
+    color: '#254038',
   },
+
   commentDate: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: 12,
+    color: '#8DA19A',
   },
+
+  /* ---------- No data ---------- */
   noData: {
     textAlign: 'center',
-    color: '#999',
+    color: '#9AA3AF',
     fontStyle: 'italic',
-    padding: 20,
+    padding: 18,
   },
 });

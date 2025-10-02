@@ -3,14 +3,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useContext, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
@@ -182,104 +182,192 @@ export default function NotificationsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f4f8ff', // soft icy background for contrast
   },
+
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   loadingText: {
-    marginTop: 10,
-    color: '#666',
+    marginTop: 12,
+    color: '#6b7a90',
+    fontSize: 14,
+    fontWeight: '600',
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    marginBottom: 8,
+    // floating header card look
+    marginHorizontal: 12,
+    borderRadius: 14,
+    // soft shadow
+    shadowColor: '#6a5cff',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 6,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    color: '#071133',
     flex: 1,
+    letterSpacing: 0.2,
   },
+
   unreadBadge: {
-    backgroundColor: '#e74c3c',
-    borderRadius: 12,
+    backgroundColor: '#ff4d6d',
+    borderRadius: 16,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     marginRight: 8,
+    minWidth: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // subtle pop shadow
+    shadowColor: '#ff4d6d',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 5,
   },
   unreadBadgeText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
+
   markAllButton: {
-    padding: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(15,108,242,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(15,108,242,0.12)',
   },
   markAllText: {
-    color: '#1976D2',
-    fontWeight: '500',
+    color: '#0f6cf2',
+    fontWeight: '700',
+    fontSize: 13,
   },
+
+  // FlatList container
   notificationsList: {
     flexGrow: 1,
+    paddingHorizontal: 14,
+    paddingBottom: 28,
   },
+
+  // Each notification
   notificationCard: {
     flexDirection: 'row',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    padding: 14,
     alignItems: 'flex-start',
+    backgroundColor: '#ffffff',
+    marginBottom: 12,
+    borderRadius: 14,
+    marginHorizontal: 4,
+    // accent left edge
+    borderLeftWidth: 6,
+    borderLeftColor: 'rgba(0,180,216,0.12)',
+    // raised card shadow
+    shadowColor: '#3850ff',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 8,
   },
+
   unreadNotification: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0fbff',
+    borderLeftColor: '#00b4d8',
   },
+
   notificationIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // soft translucent background for the icon
+    backgroundColor: 'rgba(12,120,255,0.06)',
+    // subtle icon shadow
+    shadowColor: '#00b4d8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
+
   notificationContent: {
     flex: 1,
+    paddingRight: 8,
   },
+
   notificationTitle: {
-    fontWeight: 'bold',
+    fontWeight: '800',
     fontSize: 16,
+    color: '#071133',
     marginBottom: 4,
   },
+
   notificationMessage: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-    lineHeight: 18,
+    color: '#5c6b80',
+    marginBottom: 6,
+    lineHeight: 20,
   },
+
   notificationTime: {
     fontSize: 12,
-    color: '#999',
+    color: '#98a3b3',
+    fontWeight: '600',
   },
+
   unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#1976D2',
+    width: 12,
+    height: 12,
+    borderRadius: 12 / 2,
+    backgroundColor: '#00b4d8',
     marginLeft: 8,
+    // glow
+    shadowColor: '#00b4d8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 6,
+    alignSelf: 'center',
   },
+
+  // Empty state
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+    marginTop: 20,
   },
   emptyText: {
     fontSize: 18,
-    color: '#666',
+    color: '#445566',
     marginTop: 10,
+    fontWeight: '800',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    marginTop: 5,
+    color: '#7f8a98',
+    marginTop: 6,
     textAlign: 'center',
     lineHeight: 20,
+    maxWidth: 300,
   },
 });

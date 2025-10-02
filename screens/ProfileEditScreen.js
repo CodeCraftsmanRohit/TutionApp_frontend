@@ -25,6 +25,16 @@ export default function ProfileEditScreen({ navigation }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+    const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  const showAlert = (title, message) => {
+    Alert.alert(
+      title,
+      message,
+      [{ text: 'OK', style: 'default' }]
+    );
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -97,6 +107,7 @@ export default function ProfileEditScreen({ navigation }) {
   };
 
   const uploadImages = async () => {
+     setUploadingImages(true);
     try {
       setLoading(true);
       const formData = new FormData();
@@ -140,74 +151,56 @@ export default function ProfileEditScreen({ navigation }) {
         console.log('Upload response:', res.data);
 
         if (res.data.success) {
-          Alert.alert('Success', 'Images uploaded successfully');
+showAlert('Success', 'Images uploaded successfully!');
           await fetchProfile(); // Refresh data
         } else {
-          Alert.alert('Upload Failed', res.data.message || 'Upload failed');
-        }
+showAlert('Upload Failed', res.data.message);        }
       } else {
-        Alert.alert('No Changes', 'No new images selected to upload.');
-      }
+showAlert('Info', 'No new images selected to upload.');      }
     } catch (err) {
       console.error('Upload error:', err.response?.data || err.message);
-      Alert.alert(
-        'Upload Error',
-        err.response?.data?.message || err.message || 'Something went wrong during upload'
-      );
+      showAlert('Error', err.response?.data?.message || err.message || 'Upload failed');
     } finally {
-      setLoading(false);
+    setUploadingImages(false);
     }
   };
 
   const updateProfileInfo = async () => {
     if (!name.trim() || !email.trim()) {
-      return Alert.alert('Validation Error', 'Name and email are required');
+      showAlert('Validation Error', 'Name and email are required');
+      return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return Alert.alert('Validation Error', 'Please enter a valid email address');
+      showAlert('Validation Error', 'Please enter a valid email address');
+      return;
     }
 
+    setUpdatingProfile(true);
     try {
-      setLoading(true);
-      console.log('Updating profile with:', { name, email, phone });
-
       const res = await API.put('/user/update', {
         name: name.trim(),
         email: email.trim(),
         phone: phone?.trim() || ''
       });
 
-      console.log('Update response:', res.data);
-
       if (res.data.success) {
-        // Update AsyncStorage
         if (res.data.user?.email) {
           await AsyncStorage.setItem('userEmail', res.data.user.email);
         }
-
-        Alert.alert('Success', 'Profile updated successfully');
-
-        // Refresh profile data
+        showAlert('Success', 'Profile updated successfully!');
         await fetchProfile();
-
-        // Update context if needed
         if (setUser && res.data.user) {
           setUser(res.data.user);
         }
       } else {
-        Alert.alert('Update Failed', res.data.message || 'Could not update profile');
+        showAlert('Update Failed', res.data.message);
       }
     } catch (err) {
-      console.error('Update profile error:', err.response?.data || err.message);
-      Alert.alert(
-        'Update Error',
-        err.response?.data?.message || err.message || 'Could not update profile'
-      );
+      showAlert('Error', err.response?.data?.message || err.message || 'Could not update profile');
     } finally {
-      setLoading(false);
+      setUpdatingProfile(false);
     }
   };
 
@@ -353,54 +346,62 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F8FF',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F8FF',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: '#51607A',
+    fontWeight: '700',
   },
   heading: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '900',
     marginBottom: 24,
     textAlign: 'center',
-    color: '#333',
+    color: '#08122A',
   },
   section: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: '#4F5D9B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.03,
+    shadowRadius: 14,
+    elevation: 4,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     marginBottom: 16,
-    color: '#333',
+    color: '#0F2340',
+    letterSpacing: 0.2,
   },
   input: {
-    marginBottom: 12,
+    marginBottom: 14,
+    backgroundColor: '#F1F6FF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#08122A',
   },
   previewBox: {
-    borderWidth: 1,
-    borderColor: '#e1e5e9',
-    borderRadius: 8,
-    height: 120,
+    borderRadius: 12,
+    height: 140,
     marginBottom: 12,
     overflow: 'hidden',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#E8F1FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bgPreview: {
     width: '100%',
@@ -412,27 +413,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarPreview: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     borderWidth: 3,
     borderColor: '#1976D2',
-  },
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F1F6FF',
   },
   avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e9ecef',
+    backgroundColor: '#E9F1FF',
     borderWidth: 2,
-    borderColor: '#dee2e6',
+    borderColor: '#7CC7FF',
     borderStyle: 'dashed',
   },
   placeholderText: {
@@ -445,9 +441,8 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -455,18 +450,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#1976D2',
   },
   secondaryButton: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#dee2e6',
+    borderColor: '#7CC7FF',
   },
   buttonText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 14,
   },
   secondaryButtonText: {
-    color: '#495057',
-    fontWeight: '600',
+    color: '#1976D2',
+    fontWeight: '700',
     fontSize: 14,
   },
   actionSection: {
@@ -475,15 +470,14 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: '#4F5D9B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 4,
   },
   saveButton: {
     backgroundColor: '#28a745',
@@ -494,16 +488,16 @@ const styles = StyleSheet.create({
   backButton: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#dee2e6',
+    borderColor: '#7CC7FF',
   },
   actionButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '900',
     fontSize: 16,
   },
   backButtonText: {
-    color: '#495057',
-    fontWeight: 'bold',
+    color: '#1976D2',
+    fontWeight: '900',
     fontSize: 16,
   },
 });

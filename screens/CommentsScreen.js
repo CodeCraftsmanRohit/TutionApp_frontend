@@ -3,15 +3,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useContext, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity, TouchableWithoutFeedback,
+  View
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
@@ -129,25 +132,31 @@ export default function CommentsScreen({ route, navigation }) {
   );
 
   return (
-    <View style={styles.container}>
-      {/* Post Preview */}
-      <View style={styles.postPreview}>
-        <Text style={styles.postTitle}>{post.title}</Text>
-        <Text style={styles.postDetails}>
-          {post.class} • {post.subject} • ₹{post.salary}
-        </Text>
-      </View>
+  <KeyboardAvoidingView
+    style={{ flex: 1, backgroundColor: '#f0f4f8' }}
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0} // adjust as needed
+  >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={{ flex: 1 }}>
+        {/* Post Preview */}
+        <View style={styles.postPreview}>
+          <Text style={styles.postTitle}>{post.title}</Text>
+          <Text style={styles.postDetails}>
+            {post.class} • {post.subject} • ₹{post.salary}
+          </Text>
+        </View>
 
-      {/* Comments List */}
-      {loading ? (
-        <ActivityIndicator size="large" color="#1976D2" style={styles.loader} />
-      ) : (
-        <FlatList
-          data={comments}
-          keyExtractor={(item) => item._id}
-          renderItem={renderComment}
-          contentContainerStyle={styles.commentsList}
-          ListEmptyComponent={
+        {/* Comments List */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#1976D2" style={styles.loader} />
+        ) : (
+          <FlatList
+            data={comments}
+            keyExtractor={(item) => item._id}
+            renderItem={renderComment}
+            contentContainerStyle={{ padding: 20, paddingBottom: 100 }} // extra bottom padding for keyboard
+            ListEmptyComponent={
             <View style={styles.emptyComments}>
               <MaterialIcons name="comment" size={50} color="#ccc" />
               <Text style={styles.emptyText}>No comments yet</Text>
@@ -157,146 +166,235 @@ export default function CommentsScreen({ route, navigation }) {
         />
       )}
 
-      {/* Add Comment Input */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.commentInput}
-          placeholder="Write a comment..."
-          value={newComment}
-          onChangeText={setNewComment}
-          multiline
-          maxLength={500}
-        />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            submitting && styles.sendButtonDisabled
-          ]}
-          onPress={handleAddComment}
-          disabled={submitting || !newComment.trim()}
-        >
-          <MaterialIcons
-            name="send"
-            size={20}
-            color={submitting || !newComment.trim() ? "#999" : "#1976D2"}
+
+        {/* Add Comment Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Write a comment..."
+            value={newComment}
+            onChangeText={setNewComment}
+            multiline
+            maxLength={500}
           />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sendButton, submitting && styles.sendButtonDisabled]}
+            onPress={handleAddComment}
+            disabled={submitting || !newComment.trim()}
+          >
+            <MaterialIcons
+              name="send"
+              size={20}
+              color={submitting || !newComment.trim() ? "#999" : "#1976D2"}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    </TouchableWithoutFeedback>
+  </KeyboardAvoidingView>
+);
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f3f8ff', // soft icy background for contrast
   },
+
   postPreview: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#f8f9fa',
+    padding: 20,
+    borderBottomWidth: 0,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    margin: 14,
+    marginBottom: 8,
+    // Elevated floating card look
+    shadowColor: '#6a5cff',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 6,
+    // subtle inner accent line
+    borderLeftWidth: 6,
+    borderLeftColor: '#6a5cff',
   },
   postTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#0b1630',
+    letterSpacing: 0.2,
   },
   postDetails: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    color: '#51607a',
+    marginTop: 6,
+    fontWeight: '600',
   },
+
   loader: {
     flex: 1,
     justifyContent: 'center',
+    marginTop: 30,
   },
+
   commentsList: {
     flexGrow: 1,
-    padding: 16,
+    paddingHorizontal: 18,
+    paddingBottom: 100,
   },
+
   commentCard: {
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#1976D2',
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 16,
+    // eye-catching accent edge
+    borderLeftWidth: 6,
+    borderLeftColor: '#00b4d8',
+    // soft purple glow shadow
+    shadowColor: '#6a5cff',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 10,
   },
+
   commentHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
+
   commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 46 / 2,
+    // avatar ring
+    borderWidth: 2.5,
+    borderColor: 'rgba(106,92,255,0.12)',
+    // drop shadow for depth
+    shadowColor: '#7c5cff',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    backgroundColor: '#ffffff',
   },
+
   avatarPlaceholder: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#f0f4fb',
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   commentUserInfo: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 14,
   },
+
   commentUserName: {
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#071133',
   },
+
   commentTime: {
     fontSize: 12,
-    color: '#666',
+    color: '#8a97ab',
+    marginTop: 4,
+    letterSpacing: 0.1,
   },
+
   deleteButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(231,76,60,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
   commentText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#333',
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#263142',
+    marginTop: 6,
   },
+
   emptyComments: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
+    padding: 48,
+    marginTop: 20,
+    backgroundColor: 'transparent',
   },
+
   emptyText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
+    fontSize: 18,
+    color: '#344055',
+    marginTop: 12,
+    fontWeight: '700',
   },
+
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    marginTop: 5,
+    color: '#6b788b',
+    marginTop: 6,
   },
+
   inputContainer: {
     flexDirection: 'row',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderTopWidth: 0,
     alignItems: 'flex-end',
+    backgroundColor: '#ffffff',
+    // floating bar shadow
+    shadowColor: '#00b4d8',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 18,
+    elevation: 10,
   },
+
   commentInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 8,
-    maxHeight: 100,
-    backgroundColor: '#f8f9fa',
+    borderWidth: 0,
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginRight: 12,
+    maxHeight: 120,
+    backgroundColor: '#f2f9ff',
+    fontSize: 15,
+    color: '#0b1630',
+    // subtle inner shadow to give a glass-like feel
+    shadowColor: '#7cc7ff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
+
   sendButton: {
-    padding: 10,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 28,
+    backgroundColor: '#ffffff',
+    // ring + glow effect using shadow
+    shadowColor: '#00b4d8',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0,180,216,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.55,
+    backgroundColor: '#fafafa',
+    borderColor: 'rgba(0,0,0,0.04)',
+    shadowOpacity: 0.02,
   },
 });
