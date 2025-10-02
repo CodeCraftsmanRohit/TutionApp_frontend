@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: `https://tuitionapp-backend-1jb0.onrender.com/api`, // ✅ Deployed backend
+  baseURL: `https://tuitionapp-backend-m786.onrender.com/api`, // ✅ Deployed backend
   withCredentials: true,
   timeout: 15000,
 });

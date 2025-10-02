@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import FavoriteButton from '../components/FavoriteButton';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
 
@@ -29,14 +30,31 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useContext(AuthContext);
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const [likingPostId, setLikingPostId] = useState(null); // Track which post is being liked
+  const [likingPostId, setLikingPostId] = useState(null);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
       const res = await API.get('/posts');
       if (res.data.success) {
-        setPosts(res.data.posts);
+        // Check favorite status for each post
+        const postsWithFavorites = await Promise.all(
+          res.data.posts.map(async (post) => {
+            if (user) {
+              try {
+                const favoriteRes = await API.get(`/favorites/posts/${post._id}/favorite-status`);
+                return {
+                  ...post,
+                  isFavorited: favoriteRes.data.isFavorited
+                };
+              } catch (error) {
+                return { ...post, isFavorited: false };
+              }
+            }
+            return { ...post, isFavorited: false };
+          })
+        );
+        setPosts(postsWithFavorites);
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 600,
@@ -54,7 +72,7 @@ export default function HomeScreen({ navigation }) {
     useCallback(() => {
       fetchPosts();
       return () => fadeAnim.setValue(0);
-    }, [])
+    }, [user])
   );
 
   const onRefresh = async () => {
@@ -92,21 +110,15 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleLike = async (postId) => {
-    // Immediately update UI for better UX
     setPosts(prevPosts =>
       prevPosts.map(post => {
         if (post._id === postId) {
           const wasLiked = post.isLiked;
           const currentLikes = post.likesCount || 0;
-
           return {
             ...post,
             isLiked: !wasLiked,
             likesCount: wasLiked ? currentLikes - 1 : currentLikes + 1,
-            // Optimistically update likes array
-            likes: wasLiked
-              ? post.likes.filter(like => like.user._id !== user.userId)
-              : [...post.likes, { user: { _id: user.userId, name: user.name } }]
           };
         }
         return post;
@@ -114,26 +126,9 @@ export default function HomeScreen({ navigation }) {
     );
 
     setLikingPostId(postId);
-
     try {
       const res = await API.post(`/posts/${postId}/like`);
-      if (res.data.success) {
-        // Sync with server response to ensure consistency
-        setPosts(prevPosts =>
-          prevPosts.map(post =>
-            post._id === postId
-              ? {
-                  ...post,
-                  likesCount: res.data.likesCount,
-                  isLiked: res.data.isLiked,
-                  likes: res.data.isLiked
-                    ? [...post.likes, { user: { _id: user.userId, name: user.name } }]
-                    : post.likes.filter(like => like.user._id !== user.userId)
-                }
-              : post
-          )
-        );
-      } else {
+      if (!res.data.success) {
         // Revert if server request failed
         setPosts(prevPosts =>
           prevPosts.map(post => {
@@ -147,11 +142,9 @@ export default function HomeScreen({ navigation }) {
             return post;
           })
         );
-        Alert.alert('Error', 'Failed to like post');
       }
     } catch (error) {
       console.error('Like error:', error);
-      // Revert on error
       setPosts(prevPosts =>
         prevPosts.map(post => {
           if (post._id === postId) {
@@ -164,7 +157,6 @@ export default function HomeScreen({ navigation }) {
           return post;
         })
       );
-      Alert.alert('Error', 'Failed to like post');
     } finally {
       setLikingPostId(null);
     }
@@ -185,7 +177,6 @@ export default function HomeScreen({ navigation }) {
         `Salary: ₹${post.salary ?? 'N/A'}`,
       ];
       const message = messageLines.join('\n');
-
       await Share.share({ message });
     } catch (error) {
       console.error('Share error:', error);
@@ -193,9 +184,13 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // NEW: Handle notification bell press
-  const handleNotificationPress = () => {
-    navigation.navigate('Notifications');
+  const handleUserPress = (post) => {
+    if (post.createdBy && post.createdBy._id !== user?.userId) {
+      navigation.navigate('UserRatings', {
+        userId: post.createdBy._id,
+        userName: post.createdBy.name
+      });
+    }
   };
 
   const renderItem = ({ item, index }) => (
@@ -215,23 +210,45 @@ export default function HomeScreen({ navigation }) {
     >
       {/* Post Header */}
       <View style={styles.postHeader}>
-        <View style={styles.avatarContainer}>
-          {item.createdBy?.profilePhoto?.url ? (
-            <Image source={{ uri: item.createdBy.profilePhoto.url }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <MaterialIcons name="person" size={20} color="#666" />
-            </View>
-          )}
-          <View style={styles.onlineIndicator} />
-        </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{item.createdBy?.name || 'Unknown User'}</Text>
-          <Text style={styles.postTime}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-        </View>
-        <TouchableOpacity style={styles.menuButton}>
-          <MaterialIcons name="more-vert" size={22} color="#64748B" />
+        <TouchableOpacity
+          style={styles.userInfoContainer}
+          onPress={() => handleUserPress(item)}
+          disabled={!item.createdBy || item.createdBy._id === user?.userId}
+        >
+          <View style={styles.avatarContainer}>
+            {item.createdBy?.profilePhoto?.url ? (
+              <Image source={{ uri: item.createdBy.profilePhoto.url }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <MaterialIcons name="person" size={20} color="#666" />
+              </View>
+            )}
+            <View style={styles.onlineIndicator} />
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{item.createdBy?.name || 'Unknown User'}</Text>
+            <Text style={styles.postTime}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+            {item.createdBy?.averageRating > 0 && (
+              <View style={styles.ratingBadge}>
+                <MaterialIcons name="star" size={12} color="#F59E0B" />
+                <Text style={styles.ratingText}>
+                  {item.createdBy.averageRating.toFixed(1)} ({item.createdBy.ratingCount})
+                </Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
+
+        <View style={styles.headerActions}>
+          <FavoriteButton
+            postId={item._id}
+            initialFavorited={item.isFavorited}
+            size={22}
+          />
+          <TouchableOpacity style={styles.menuButton}>
+            <MaterialIcons name="more-vert" size={22} color="#64748B" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Post Content */}
@@ -291,7 +308,7 @@ export default function HomeScreen({ navigation }) {
         <TouchableOpacity
           style={[styles.actionButton, item.isLiked && styles.actionButtonActive]}
           onPress={() => handleLike(item._id)}
-          disabled={likingPostId === item._id} // Disable while processing
+          disabled={likingPostId === item._id}
         >
           {likingPostId === item._id ? (
             <ActivityIndicator size="small" color="#EF4444" />
@@ -364,13 +381,21 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.headerTitle}>Discover Posts</Text>
           <Text style={styles.headerSubtitle}>Find the perfect teaching opportunity</Text>
         </View>
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={handleNotificationPress} // NEW: Added navigation
-        >
-          <MaterialIcons name="notifications" size={24} color="#374151" />
-          <View style={styles.notificationBadge} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => navigation.navigate('Search')}
+          >
+            <MaterialIcons name="search" size={24} color="#374151" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <MaterialIcons name="notifications" size={24} color="#374151" />
+            <View style={styles.notificationBadge} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Create Post Button */}
@@ -454,6 +479,21 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: '#F8FAFC',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchButton: {
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
@@ -475,6 +515,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
+    position: 'relative',
   },
   notificationBadge: {
     position: 'absolute',
@@ -541,6 +582,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  userInfoContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   avatarContainer: {
     position: 'relative',
   },
@@ -587,6 +633,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#94A3B8',
     fontWeight: '500',
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 4,
+    fontWeight: '600',
   },
   menuButton: {
     padding: 8,

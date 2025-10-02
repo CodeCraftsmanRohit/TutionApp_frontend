@@ -19,6 +19,11 @@ import HomeScreen from "../screens/HomeScreen";
 import NotificationsScreen from "../screens/NotificationScreen";
 import ProfileEditScreen from "../screens/ProfileEditScreen";
 
+// New screens for features
+import FavoritesScreen from "../screens/FavoritesScreen";
+import SearchScreen from "../screens/SearchScreen";
+import UserRatingsScreen from "../screens/UserRatingsScreen";
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -39,30 +44,81 @@ function Tabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: true,
-        tabBarIcon: ({ color, size }) => {
+        headerShown: false,
+        tabBarIcon: ({ color, size, focused }) => {
           if (route.name === "Home")
             return <MaterialIcons name="home" size={size} color={color} />;
-          if (route.name === "Account")
-            return <MaterialIcons name="person" size={size} color={color} />;
+          if (route.name === "Favorites")
+            return <MaterialIcons name="favorite" size={size} color={color} />;
+          if (route.name === "Search")
+            return <MaterialIcons name="search" size={size} color={color} />;
           if (route.name === "Notifications")
             return <Ionicons name="notifications" size={size} color={color} />;
+          if (route.name === "Account")
+            return <MaterialIcons name="person" size={size} color={color} />;
           if (route.name === "Admin")
             return <MaterialIcons name="admin-panel-settings" size={size} color={color} />;
           return null;
         },
+        tabBarActiveTintColor: '#6366F1',
+        tabBarInactiveTintColor: '#64748B',
+       // inside Tabs() -> screenOptions:
+tabBarStyle: {
+  position: 'absolute',
+  left: 12,
+  right: 12,
+  bottom: 0,         // move up a bit from the absolute bottom
+  height: 85,
+  borderRadius: 14,
+  paddingBottom: 8,
+  paddingTop: 8,
+  backgroundColor: '#FFFFFF',
+  borderTopWidth: 0,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.06,
+  shadowRadius: 12,
+  elevation: 8,
+},
+
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ title: 'Home' }}
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ title: 'Search' }}
+      />
+      <Tab.Screen
+        name="Favorites"
+        component={FavoritesScreen}
+        options={{ title: 'Favorites' }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Notifications' }}
+      />
       {user?.role === 'admin' && (
         <Tab.Screen
           name="Admin"
           component={AdminDashboardScreen}
-          options={{ title: 'Admin Dashboard' }}
+          options={{ title: 'Admin' }}
         />
       )}
-      <Tab.Screen name="Account" component={AccountScreen} />
+      <Tab.Screen
+        name="Account"
+        component={AccountScreen}
+        options={{ title: 'Profile' }}
+      />
     </Tab.Navigator>
   );
 }
@@ -94,6 +150,22 @@ export default function AppNavigator() {
         name="UserActivity"
         component={UserActivityScreen}
         options={{ headerShown: true, title: "User Activity" }}
+      />
+      {/* New Feature Screens */}
+      <Stack.Screen
+        name="Favorites"
+        component={FavoritesScreen}
+        options={{ headerShown: true, title: "My Favorites" }}
+      />
+      <Stack.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UserRatings"
+        component={UserRatingsScreen}
+        options={{ headerShown: true, title: "Ratings" }}
       />
     </Stack.Navigator>
   );
