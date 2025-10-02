@@ -56,34 +56,39 @@ export default function CreatePostScreen({ navigation, route }) {
     Alert.alert(title, message, [{ text: "OK", style: "default" }]);
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission required", "Please allow access to photos");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [16, 9],
-    });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
-  };
+const pickImage = async () => {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert("Permission required", "Please allow access to photos");
+    return;
+  }
 
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission required", "Please allow camera access");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [16, 9],
-    });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
-  };
+  const result = await ImagePicker.launchImageLibraryAsync({
+   mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ updated
+    quality: 0.8,
+    allowsEditing: true,
+    aspect: [16, 9],
+  });
+
+  if (!result.canceled) setImageUri(result.assets[0].uri);
+};
+
+const takePhoto = async () => {
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert("Permission required", "Please allow camera access");
+    return;
+  }
+
+  const result = await ImagePicker.launchCameraAsync({
+   mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ added
+    quality: 0.8,
+    allowsEditing: true,
+    aspect: [16, 9],
+  });
+
+  if (!result.canceled) setImageUri(result.assets[0].uri);
+};
 
   const removeImage = () => {
     setImageUri(null);

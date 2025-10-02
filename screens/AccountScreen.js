@@ -226,12 +226,16 @@ export default function AccountScreen({ navigation }) {
               <Text style={styles.actionText}>Search</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard}>
-              <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-                <Feather name="help-circle" size={22} color="#8B5CF6" />
-              </View>
-              <Text style={styles.actionText}>About</Text>
-            </TouchableOpacity>
+            <TouchableOpacity
+  style={styles.actionCard}
+  onPress={() => navigation.navigate('About')}
+>
+  <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+    <Feather name="help-circle" size={22} color="#8B5CF6" />
+  </View>
+  <Text style={styles.actionText}>About</Text>
+</TouchableOpacity>
+
           </View>
         </View>
 

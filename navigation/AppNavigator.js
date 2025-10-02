@@ -20,10 +20,10 @@ import NotificationsScreen from "../screens/NotificationScreen";
 import ProfileEditScreen from "../screens/ProfileEditScreen";
 
 // New screens for features
+import AboutScreen from '../screens/AboutScreen';
 import FavoritesScreen from "../screens/FavoritesScreen";
 import SearchScreen from "../screens/SearchScreen";
 import UserRatingsScreen from "../screens/UserRatingsScreen";
-
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -167,6 +167,17 @@ export default function AppNavigator() {
         component={UserRatingsScreen}
         options={{ headerShown: true, title: "Ratings" }}
       />
+      <Stack.Screen
+  name="About"
+  component={AboutScreen}
+  options={{
+    headerShown: true,
+    title: "About",
+    headerStyle: { backgroundColor: '#667eea' },
+    headerTintColor: '#FFFFFF',
+  }}
+/>
+
     </Stack.Navigator>
   );
 }
