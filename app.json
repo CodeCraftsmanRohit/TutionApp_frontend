@@ -8,15 +8,28 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rahulcoolboy.tutionapp",
+      "icon": "./assets/images/icon.png",
+      "splash": {
+        "image": "./assets/images/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
     "android": {
+      "package": "com.rahulcoolboy.tutionapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.rahulcoolboy.tutionapp"
+      "icon": "./assets/images/icon.png",
+      "splash": {
+        "image": "./assets/images/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "output": "static",
@@ -27,7 +40,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash.png",
+          "image": "./assets/images/splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -44,8 +57,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "93428116-5116-4d2e-aca4-26be6a865698"
+        "projectId": "68bd9085-36b5-4b57-b2b6-e98392816003"
       }
-    }
+    },
+    "owner": "rohitdecoder"
   }
 }
