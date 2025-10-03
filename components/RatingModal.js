@@ -1,15 +1,15 @@
+// components/RatingModal.js
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import API from '../services/api';
 import RatingStars from './RatingStars';
 
 export default function RatingModal({
@@ -17,50 +17,67 @@ export default function RatingModal({
   onClose,
   ratedUserId,
   postId,
-  userName
+  userName,
+  onSubmit // <-- ensure this prop is accepted
 }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
-    if (rating === 0) {
-      Alert.alert('Error', 'Please select a rating');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await API.post('/ratings', {
-        ratedUserId,
-        postId,
-        rating,
-        comment: comment.trim()
-      });
-
-      if (response.data.success) {
-        Alert.alert('Success', 'Rating submitted successfully');
-        resetForm();
-        onClose();
-      } else {
-        Alert.alert('Error', response.data.message);
-      }
-    } catch (error) {
-      console.error('Submit rating error:', error);
-      Alert.alert('Error', 'Failed to submit rating');
-    } finally {
+  // reset when modal is closed/opened
+  useEffect(() => {
+    if (!visible) {
+      setRating(0);
+      setComment('');
       setSubmitting(false);
     }
-  };
+  }, [visible]);
 
-  const resetForm = () => {
-    setRating(0);
-    setComment('');
-  };
+ const handleSubmit = async () => {
+  if (rating === 0) {
+    Alert.alert('Error', 'Please select a rating');
+    return;
+  }
+
+  if (typeof onSubmit !== 'function') {
+    console.warn('RatingModal: onSubmit prop is missing or not a function');
+    Alert.alert('Error', 'Unable to submit rating right now');
+    return;
+  }
+
+  setSubmitting(true);
+  try {
+    const ratingData = {
+      ratedUserId, // controller accepts both `ratedUserId` and `ratedUser`
+      postId,
+      rating,
+      comment: comment.trim()
+    };
+
+    // Call the onSubmit prop instead of making API call directly
+    await onSubmit(ratingData);
+
+    // If successful, close the modal
+    handleClose();
+  } catch (error) {
+    console.error('Submit rating error:', error);
+
+    // Handle duplicate rating error specifically
+    if (error.response?.status === 400) {
+      const errorMessage = error.response?.data?.message || 'You have already rated this user';
+      Alert.alert('Already Rated', errorMessage);
+    } else {
+      Alert.alert('Error', 'Failed to submit rating');
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleClose = () => {
-    resetForm();
-    onClose();
+    setRating(0);
+    setComment('');
+    onClose && onClose();
   };
 
   return (

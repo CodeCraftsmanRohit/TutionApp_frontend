@@ -26,7 +26,15 @@ export default function AccountScreen({ navigation }) {
   const { setUser, user } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+const [selectedUserForRating, setSelectedUserForRating] = useState(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
+
+  const handleRateUser = () => {
+  // This would be used when viewing other users' profiles
+  // For now, we'll implement it in HomeScreen and UserProfile screens
+  Alert.alert('Info', 'To rate a user, use the star button on their posts');
+};
 
   const fetchProfile = async () => {
     try {
@@ -217,14 +225,14 @@ export default function AccountScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => navigation.navigate('Search')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                <MaterialIcons name="search" size={22} color="#3B82F6" />
-              </View>
-              <Text style={styles.actionText}>Search</Text>
-            </TouchableOpacity>
+  style={styles.actionCard}
+  onPress={() => navigation.navigate('UserActivityHistory')}
+>
+  <View style={[styles.actionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+    <MaterialIcons name="history" size={22} color="#8B5CF6" />
+  </View>
+  <Text style={styles.actionText}>Activity History</Text>
+</TouchableOpacity>
 
             <TouchableOpacity
   style={styles.actionCard}

@@ -65,46 +65,41 @@ export default function ProfileEditScreen({ navigation }) {
   };
 
   // ✅ FIXED: Updated image picker function
-  const pickImage = async (setter) => {
-    try {
-      console.log('Requesting media library permissions...');
+  // screens/ProfileEditScreen.js - Update pickImage function
+const pickImage = async (setter) => {
+  try {
+    console.log('Requesting media library permissions...');
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-      // Request permissions first
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (permissionResult.status !== 'granted') {
-        Alert.alert(
-          'Permission required',
-          'Sorry, we need camera roll permissions to make this work!'
-        );
-        return;
-      }
-
-      console.log('Launching image picker...');
-
-      // Use the correct ImagePicker options
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ Correct property name
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.7,
-      });
-
-      console.log('Image picker result:', result);
-
-      // ✅ Handle the new result format (Expo ImagePicker v13+)
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedImage = result.assets[0];
-        setter(selectedImage.uri);
-        console.log('Image selected:', selectedImage.uri);
-      } else {
-        console.log('Image selection canceled');
-      }
-    } catch (error) {
-      console.error('Image picker error:', error);
-      Alert.alert('Error', 'Failed to pick image: ' + error.message);
+    if (permissionResult.status !== 'granted') {
+      Alert.alert(
+        'Permission required',
+        'Sorry, we need camera roll permissions to make this work!'
+      );
+      return;
     }
-  };
+
+    console.log('Launching image picker...');
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Correct enum
+      allowsEditing: false,
+      quality: 0.7,
+    });
+
+    console.log('Image picker result:', result);
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedImage = result.assets[0];
+      setter(selectedImage.uri);
+      console.log('Image selected:', selectedImage.uri);
+    } else {
+      console.log('Image selection canceled');
+    }
+  } catch (error) {
+    console.error('Image picker error:', error);
+    Alert.alert('Error', 'Failed to pick image: ' + error.message);
+  }
+};
 
   const uploadImages = async () => {
      setUploadingImages(true);

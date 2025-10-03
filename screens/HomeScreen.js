@@ -1,7 +1,7 @@
 // screens/HomeScreen.js
-import { MaterialIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useContext, useState } from 'react';
+import { MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,36 +16,139 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import FavoriteButton from '../components/FavoriteButton';
-import { AuthContext } from '../context/AuthContext';
-import API from '../services/api';
-
-const { width, height } = Dimensions.get('window');
+} from "react-native";
+import FavoriteButton from "../components/FavoriteButton";
+import RatingModal from "../components/RatingModal";
+import { AuthContext } from "../context/AuthContext";
+import API from "../services/api";
+const { width, height } = Dimensions.get("window");
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function HomeScreen({ navigation }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [canRateMap, setCanRateMap] = useState({});
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useContext(AuthContext);
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [likingPostId, setLikingPostId] = useState(null);
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [selectedUserForRating, setSelectedUserForRating] = useState(null);
+
+
+const isFocused = useIsFocused();
+
+const fetchUnreadNotifications = async () => {
+    try {
+      const response = await API.get("/notifications/unread-count"); // Adjust endpoint as per your API
+      setUnreadNotifications(response.data.unreadCount || 0);
+    } catch (error) {
+      console.error("Fetch unread notifications error:", error);
+      setUnreadNotifications(0); // Default to 0 if API call fails
+    }
+  };
+
+useEffect(() => {
+    fetchPosts();
+    fetchUnreadNotifications(); // Fetch notifications on initial load
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchPosts();
+      fetchUnreadNotifications(); // Fetch notifications when screen is focused
+    }
+  }, [isFocused]);
+// Add navigation listener to handle updates from CreatePostScreen
+useEffect(() => {
+  const unsubscribe = navigation.addListener('focus', () => {
+    fetchPosts();
+    fetchUnreadNotifications();
+  });
+
+  return unsubscribe;
+}, [navigation]);
+
+  const checkCanRate = async (post) => {
+    if (!post.createdBy || post.createdBy._id === user?.userId) {
+      return false;
+    }
+
+    try {
+      const response = await API.get("/ratings/can-rate", {
+        params: {
+          ratedUserId: post.createdBy._id,
+          postId: post._id,
+        },
+      });
+
+      return response.data.canRate;
+    } catch (error) {
+      console.error("Check can rate error:", error);
+      return true; // Default to allowing rating if check fails
+    }
+  };
+  const handleRateUser = async (post) => {
+    if (!post.createdBy || post.createdBy._id === user?.userId) {
+      Alert.alert("Info", "You cannot rate yourself");
+      return;
+    }
+
+    // Check if user can rate this post
+    const canRate = await checkCanRate(post);
+
+    if (!canRate) {
+      Alert.alert(
+        "Already Rated",
+        "You have already rated this user for this post"
+      );
+      return;
+    }
+
+    setSelectedUserForRating({
+      userId: post.createdBy._id,
+      userName: post.createdBy.name,
+      postId: post._id,
+    });
+    setRatingModalVisible(true);
+  };
+
+  const handleRatingSubmit = async (ratingData) => {
+    try {
+      const response = await API.post("/ratings", ratingData);
+      if (response.data.success) {
+        Alert.alert("Success", "Rating submitted successfully!");
+        // Don't close modal here - let RatingModal handle it
+        return response.data;
+      } else {
+        // Throw error so RatingModal can catch it
+        throw new Error(response.data.message || "Failed to submit rating");
+      }
+    } catch (error) {
+      console.error("Submit rating error:", error);
+      // Re-throw the error so RatingModal can handle it
+      throw error;
+    }
+  };
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const res = await API.get('/posts');
+      const res = await API.get("/posts");
       if (res.data.success) {
         // Check favorite status for each post
         const postsWithFavorites = await Promise.all(
           res.data.posts.map(async (post) => {
             if (user) {
               try {
-                const favoriteRes = await API.get(`/favorites/posts/${post._id}/favorite-status`);
+                const favoriteRes = await API.get(
+                  `/favorites/posts/${post._id}/favorite-status`
+                );
                 return {
                   ...post,
-                  isFavorited: favoriteRes.data.isFavorited
+                  isFavorited: favoriteRes.data.isFavorited,
                 };
               } catch (error) {
                 return { ...post, isFavorited: false };
@@ -62,7 +165,7 @@ export default function HomeScreen({ navigation }) {
         }).start();
       }
     } catch (err) {
-      console.error('Fetch posts error:', err.message || err);
+      console.error("Fetch posts error:", err.message || err);
     } finally {
       setLoading(false);
     }
@@ -78,27 +181,34 @@ export default function HomeScreen({ navigation }) {
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchPosts();
+    await fetchUnreadNotifications(); // Refresh notifications on pull-to-refresh
     setRefreshing(false);
   };
 
   const handleDelete = (postId) => {
-    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
+      { text: "Cancel", style: "cancel" },
       {
-        text: 'Delete',
-        style: 'destructive',
+        text: "Delete",
+        style: "destructive",
         onPress: async () => {
           try {
             const res = await API.delete(`/posts/${postId}`);
             if (res.data.success) {
-              Alert.alert('Deleted', 'Post deleted successfully');
+              Alert.alert("Deleted", "Post deleted successfully");
               fetchPosts();
             } else {
-              Alert.alert('Failed', res.data.message || 'Could not delete post');
+              Alert.alert(
+                "Failed",
+                res.data.message || "Could not delete post"
+              );
             }
           } catch (err) {
-            console.error('Delete error:', err.response || err.message || err);
-            Alert.alert('Error', (err.response?.data?.message) || err.message || 'Delete failed');
+            console.error("Delete error:", err.response || err.message || err);
+            Alert.alert(
+              "Error",
+              err.response?.data?.message || err.message || "Delete failed"
+            );
           }
         },
       },
@@ -106,12 +216,17 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleEdit = (post) => {
-    navigation.getParent()?.navigate('CreatePost', { mode: 'edit', post });
+    navigation.getParent()?.navigate("CreatePost", { mode: "edit", post });
   };
+  const handleCreatePostPress = () => {
+  navigation.navigate('CreatePost', {
+    onPostUpdated: () => setRefreshTrigger(prev => prev + 1)
+  });
+};
 
   const handleLike = async (postId) => {
-    setPosts(prevPosts =>
-      prevPosts.map(post => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) => {
         if (post._id === postId) {
           const wasLiked = post.isLiked;
           const currentLikes = post.likesCount || 0;
@@ -130,13 +245,15 @@ export default function HomeScreen({ navigation }) {
       const res = await API.post(`/posts/${postId}/like`);
       if (!res.data.success) {
         // Revert if server request failed
-        setPosts(prevPosts =>
-          prevPosts.map(post => {
+        setPosts((prevPosts) =>
+          prevPosts.map((post) => {
             if (post._id === postId) {
               return {
                 ...post,
                 isLiked: !post.isLiked,
-                likesCount: post.isLiked ? (post.likesCount - 1) : (post.likesCount + 1)
+                likesCount: post.isLiked
+                  ? post.likesCount - 1
+                  : post.likesCount + 1,
               };
             }
             return post;
@@ -144,14 +261,16 @@ export default function HomeScreen({ navigation }) {
         );
       }
     } catch (error) {
-      console.error('Like error:', error);
-      setPosts(prevPosts =>
-        prevPosts.map(post => {
+      console.error("Like error:", error);
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => {
           if (post._id === postId) {
             return {
               ...post,
               isLiked: !post.isLiked,
-              likesCount: post.isLiked ? (post.likesCount - 1) : (post.likesCount + 1)
+              likesCount: post.isLiked
+                ? post.likesCount - 1
+                : post.likesCount + 1,
             };
           }
           return post;
@@ -163,34 +282,40 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleComment = (post) => {
-    navigation.navigate('Comments', { post });
+    navigation.navigate("Comments", { post });
   };
 
   const handleShare = async (post) => {
     try {
-      const title = post.title ? post.title : `${post.subject || ''} - Class ${post.class || ''}`;
+      const title = post.title
+        ? post.title
+        : `${post.subject || ""} - Class ${post.class || ""}`;
       const messageLines = [
         title,
-        `Class: ${post.class ?? 'N/A'}`,
-        `Subject: ${post.subject ?? 'N/A'}`,
-        `Board: ${post.board ?? 'N/A'}`,
-        `Salary: ₹${post.salary ?? 'N/A'}`,
+        `Class: ${post.class ?? "N/A"}`,
+        `Subject: ${post.subject ?? "N/A"}`,
+        `Board: ${post.board ?? "N/A"}`,
+        `Salary: ₹${post.salary ?? "N/A"}`,
       ];
-      const message = messageLines.join('\n');
+      const message = messageLines.join("\n");
       await Share.share({ message });
     } catch (error) {
-      console.error('Share error:', error);
-      Alert.alert('Error', 'Unable to share this post right now.');
+      console.error("Share error:", error);
+      Alert.alert("Error", "Unable to share this post right now.");
     }
   };
 
   const handleUserPress = (post) => {
     if (post.createdBy && post.createdBy._id !== user?.userId) {
-      navigation.navigate('UserRatings', {
+      navigation.navigate("UserRatings", {
         userId: post.createdBy._id,
-        userName: post.createdBy.name
+        userName: post.createdBy.name,
       });
     }
+  };
+const handleNotificationPress = () => {
+    setUnreadNotifications(0); // Clear unread count when navigating to Notifications
+    navigation.navigate("Notifications");
   };
 
   const renderItem = ({ item, index }) => (
@@ -199,12 +324,14 @@ export default function HomeScreen({ navigation }) {
         styles.card,
         {
           opacity: fadeAnim,
-          transform: [{
-            translateY: fadeAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [50, 0],
-            }),
-          }],
+          transform: [
+            {
+              translateY: fadeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0],
+              }),
+            },
+          ],
         },
       ]}
     >
@@ -217,7 +344,10 @@ export default function HomeScreen({ navigation }) {
         >
           <View style={styles.avatarContainer}>
             {item.createdBy?.profilePhoto?.url ? (
-              <Image source={{ uri: item.createdBy.profilePhoto.url }} style={styles.avatar} />
+              <Image
+                source={{ uri: item.createdBy.profilePhoto.url }}
+                style={styles.avatar}
+              />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <MaterialIcons name="person" size={20} color="#666" />
@@ -226,13 +356,18 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.onlineIndicator} />
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{item.createdBy?.name || 'Unknown User'}</Text>
-            <Text style={styles.postTime}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+            <Text style={styles.userName}>
+              {item.createdBy?.name || "Unknown User"}
+            </Text>
+            <Text style={styles.postTime}>
+              {new Date(item.createdAt).toLocaleDateString()}
+            </Text>
             {item.createdBy?.averageRating > 0 && (
               <View style={styles.ratingBadge}>
                 <MaterialIcons name="star" size={12} color="#F59E0B" />
                 <Text style={styles.ratingText}>
-                  {item.createdBy.averageRating.toFixed(1)} ({item.createdBy.ratingCount})
+                  {item.createdBy.averageRating.toFixed(1)} (
+                  {item.createdBy.ratingCount})
                 </Text>
               </View>
             )}
@@ -245,6 +380,21 @@ export default function HomeScreen({ navigation }) {
             initialFavorited={item.isFavorited}
             size={22}
           />
+
+          {/* Rating Button - Only show if user is not the post owner */}
+         {/* // In the headerActions section */}
+{item.createdBy && item.createdBy._id !== user?.userId && (
+  <TouchableOpacity
+    style={styles.rateButton}
+    onPress={() => handleRateUser(item)}
+  >
+    <MaterialIcons
+      name={canRateMap[item._id] === false ? "star" : "star-rate"}
+      size={22}
+      color={canRateMap[item._id] === false ? "#94A3B8" : "#F59E0B"}
+    />
+  </TouchableOpacity>
+)}
           <TouchableOpacity style={styles.menuButton}>
             <MaterialIcons name="more-vert" size={22} color="#64748B" />
           </TouchableOpacity>
@@ -253,7 +403,9 @@ export default function HomeScreen({ navigation }) {
 
       {/* Post Content */}
       <View style={styles.contentContainer}>
-        <Text style={styles.cardTitle}>{item.title || `${item.subject} - Class ${item.class}`}</Text>
+        <Text style={styles.cardTitle}>
+          {item.title || `${item.subject} - Class ${item.class}`}
+        </Text>
 
         <View style={styles.detailsGrid}>
           <View style={styles.detailItem}>
@@ -306,7 +458,10 @@ export default function HomeScreen({ navigation }) {
       {/* Like and Comment Actions */}
       <View style={styles.actionsContainer}>
         <TouchableOpacity
-          style={[styles.actionButton, item.isLiked && styles.actionButtonActive]}
+          style={[
+            styles.actionButton,
+            item.isLiked && styles.actionButtonActive,
+          ]}
           onPress={() => handleLike(item._id)}
           disabled={likingPostId === item._id}
         >
@@ -319,7 +474,9 @@ export default function HomeScreen({ navigation }) {
               color={item.isLiked ? "#EF4444" : "#64748B"}
             />
           )}
-          <Text style={[styles.actionText, item.isLiked && styles.actionTextActive]}>
+          <Text
+            style={[styles.actionText, item.isLiked && styles.actionTextActive]}
+          >
             {item.likesCount || 0}
           </Text>
         </TouchableOpacity>
@@ -332,14 +489,17 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.actionText}>{item.commentsCount || 0}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={() => handleShare(item)}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleShare(item)}
+        >
           <MaterialIcons name="share" size={20} color="#64748B" />
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
       </View>
 
       {/* Admin Actions */}
-      {user?.role === 'admin' && (
+      {(user?.role === "admin" || item.createdBy?._id === user?.userId) && (
         <View style={styles.adminActions}>
           <TouchableOpacity
             style={[styles.adminButton, styles.editButton]}
@@ -379,21 +539,25 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Discover Posts</Text>
-          <Text style={styles.headerSubtitle}>Find the perfect teaching opportunity</Text>
+          <Text style={styles.headerSubtitle}>
+            Find the perfect teaching opportunity
+          </Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.searchButton}
-            onPress={() => navigation.navigate('Search')}
+            onPress={() => navigation.navigate("Search")}
           >
             <MaterialIcons name="search" size={24} color="#374151" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => navigation.navigate('Notifications')}
+            onPress={handleNotificationPress} // Updated handler
           >
             <MaterialIcons name="notifications" size={24} color="#374151" />
-            <View style={styles.notificationBadge} />
+            {unreadNotifications > 0 && ( // Conditionally render badge
+              <View style={styles.notificationBadge} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -402,7 +566,7 @@ export default function HomeScreen({ navigation }) {
       {user && (
         <AnimatedTouchable
           style={styles.createPostButton}
-          onPress={() => navigation.getParent()?.navigate('CreatePost')}
+          onPress={() => navigation.getParent()?.navigate("CreatePost")}
           activeOpacity={0.8}
         >
           <View style={styles.createPostContent}>
@@ -424,7 +588,7 @@ export default function HomeScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#6366F1']}
+            colors={["#6366F1"]}
             tintColor="#6366F1"
           />
         }
@@ -436,18 +600,32 @@ export default function HomeScreen({ navigation }) {
             </View>
             <Text style={styles.emptyText}>No posts found</Text>
             <Text style={styles.emptySubtext}>
-              Be the first to create a post and help others find teaching opportunities
+              Be the first to create a post and help others find teaching
+              opportunities
             </Text>
             {user && (
               <TouchableOpacity
                 style={styles.emptyButton}
-                onPress={() => navigation.getParent()?.navigate('CreatePost')}
+                onPress={() => navigation.getParent()?.navigate("CreatePost")}
               >
-                <Text style={styles.emptyButtonText}>Create Your First Post</Text>
+                <Text style={styles.emptyButtonText}>
+                  Create Your First Post
+                </Text>
               </TouchableOpacity>
             )}
           </View>
         }
+      />
+      <RatingModal
+        visible={ratingModalVisible}
+        onClose={() => {
+          setRatingModalVisible(false);
+          setSelectedUserForRating(null);
+        }}
+        ratedUserId={selectedUserForRating?.userId}
+        postId={selectedUserForRating?.postId}
+        userName={selectedUserForRating?.userName}
+        onSubmit={handleRatingSubmit}
       />
     </View>
   );
@@ -456,39 +634,39 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
   },
   headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   searchButton: {
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     marginRight: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -496,68 +674,68 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#1E293B',
+    fontWeight: "800",
+    color: "#1E293B",
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#64748B',
+    color: "#64748B",
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   notificationButton: {
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
-    position: 'relative',
+    position: "relative",
   },
   notificationBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: "#EF4444",
   },
   createPostButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: "#6366F1",
     marginHorizontal: 24,
     marginVertical: 16,
     borderRadius: 20,
     paddingVertical: 18,
-    shadowColor: '#6366F1',
+    shadowColor: "#6366F1",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.4,
     shadowRadius: 20,
     elevation: 15,
     borderWidth: 1,
-    borderColor: '#4F46E5',
+    borderColor: "#4F46E5",
   },
   createPostContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   plusIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   createPostText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
   listContent: {
@@ -565,59 +743,59 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 28,
     padding: 24,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
     shadowRadius: 25,
     elevation: 15,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderColor: "rgba(255, 255, 255, 0.8)",
   },
   postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
   },
   userInfoContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
   },
   avatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    backgroundColor: '#F1F5F9',
-    shadowColor: '#000',
+    borderColor: "#FFFFFF",
+    backgroundColor: "#F1F5F9",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 6,
   },
   avatarPlaceholder: {
-    backgroundColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E2E8F0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   onlineIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 2,
     right: 2,
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
   },
   userInfo: {
     flex: 1,
@@ -625,25 +803,25 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 17,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 2,
   },
   postTime: {
     fontSize: 13,
-    color: '#94A3B8',
-    fontWeight: '500',
+    color: "#94A3B8",
+    fontWeight: "500",
   },
   ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
   },
   ratingText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: "#6B7280",
     marginLeft: 4,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   menuButton: {
     padding: 8,
@@ -653,148 +831,148 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#1E293B',
+    fontWeight: "800",
+    color: "#1E293B",
     marginBottom: 16,
     lineHeight: 26,
   },
   detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 16,
     gap: 12,
   },
   detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: "#F1F5F9",
   },
   detailText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginLeft: 6,
   },
   detailTextLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
+    fontWeight: "700",
+    color: "#4F46E5",
     marginLeft: 8,
     marginRight: 6,
-    textTransform: 'capitalize',
+    textTransform: "capitalize",
   },
   detailTextWithLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#374151',
+    fontWeight: "700",
+    color: "#374151",
   },
   additionalDetails: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: "#F1F5F9",
   },
   detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   detailLabel: {
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
     marginLeft: 8,
     marginRight: 4,
   },
   detailValue: {
     fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '600',
+    color: "#1E293B",
+    fontWeight: "600",
     flex: 1,
   },
   imageContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 16,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   postImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
     borderRadius: 20,
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    backgroundColor: "rgba(0, 0, 0, 0.02)",
   },
   actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: "#F1F5F9",
     paddingTop: 16,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: "#F1F5F9",
   },
   actionButtonActive: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
   },
   actionText: {
     marginLeft: 8,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
+    fontWeight: "600",
+    color: "#64748B",
   },
   actionTextActive: {
-    color: '#EF4444',
+    color: "#EF4444",
   },
   adminActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 16,
     gap: 12,
   },
   adminButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     borderRadius: 14,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
   editButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
   },
   deleteButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: "#EF4444",
   },
   adminButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 6,
   },
   emptyContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 40,
     marginTop: 60,
   },
@@ -802,39 +980,43 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   emptyText: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#64748B',
+    fontWeight: "700",
+    color: "#64748B",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#94A3B8',
-    textAlign: 'center',
+    color: "#94A3B8",
+    textAlign: "center",
     lineHeight: 22,
     marginBottom: 24,
   },
   emptyButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: "#6366F1",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 16,
-    shadowColor: '#6366F1',
+    shadowColor: "#6366F1",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
   emptyButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
+  },
+  rateButton: {
+    padding: 8,
+    marginHorizontal: 4,
   },
 });

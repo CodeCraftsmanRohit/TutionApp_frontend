@@ -1,13 +1,14 @@
+// screens/UserRatingsScreen.js
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import RatingStars from '../components/RatingStars';
 import API from '../services/api';
@@ -26,6 +27,9 @@ export default function UserRatingsScreen({ route, navigation }) {
       if (response.data.success) {
         setRatings(response.data.ratings);
         setSummary(response.data.summary);
+      } else {
+        setRatings([]);
+        setSummary(null);
       }
     } catch (error) {
       console.error('Fetch ratings error:', error);

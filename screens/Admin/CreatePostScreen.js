@@ -56,127 +56,151 @@ export default function CreatePostScreen({ navigation, route }) {
     Alert.alert(title, message, [{ text: "OK", style: "default" }]);
   };
 
+// screens/Admin/CreatePostScreen.js - Update image picker functions
 const pickImage = async () => {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== "granted") {
-    Alert.alert("Permission required", "Please allow access to photos");
-    return;
-  }
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission required", "Please allow access to photos");
+        return;
+      }
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-   mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ updated
-    quality: 0.8,
-    allowsEditing: true,
-    aspect: [16, 9],
-  });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ Updated
+        quality: 0.8,
+        allowsEditing: false,
+      });
 
-  if (!result.canceled) setImageUri(result.assets[0].uri);
-};
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setImageUri(result.assets[0].uri);
+        console.log("✅ Image selected:", result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error("Image picker error:", err);
+      showAlert("Error", "Failed to pick image");
+    }
+  };
 
-const takePhoto = async () => {
-  const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  if (status !== "granted") {
-    Alert.alert("Permission required", "Please allow camera access");
-    return;
-  }
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission required", "Please allow camera access");
+        return;
+      }
 
-  const result = await ImagePicker.launchCameraAsync({
-   mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ added
-    quality: 0.8,
-    allowsEditing: true,
-    aspect: [16, 9],
-  });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ Updated
+        quality: 0.8,
+        allowsEditing: false,
+      });
 
-  if (!result.canceled) setImageUri(result.assets[0].uri);
-};
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setImageUri(result.assets[0].uri);
+        console.log("✅ Photo taken:", result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error("Camera error:", err);
+      showAlert("Error", "Failed to take photo");
+    }
+  };
 
   const removeImage = () => {
     setImageUri(null);
   };
-
-  const createOrUpdatePost = async () => {
-    if (
-      !title ||
-      !className ||
-      !subject ||
-      !board ||
-      salary === "" ||
-      !time ||
-      !address
-    ) {
+// screens/Admin/CreatePostScreen.js - Update createOrUpdatePost function
+const createOrUpdatePost = async () => {
+    if (!title || !className || !subject || !board || salary === "" || !time || !address) {
       return Alert.alert("Error", "Please fill all required fields");
     }
 
     const salaryNum = Number(salary);
     if (!Number.isFinite(salaryNum)) {
-      showAlert("Validation Error", "Please fill all required fields");
+      showAlert("Validation Error", "Salary must be a number");
       return;
     }
 
     setLoading(true);
 
     try {
-      if (isEdit && editPost) {
-        const { data } = await API.put(`/posts/${editPost._id}`, {
-          title,
-          class: className,
-          subject,
-          board,
-          salary: salaryNum,
-          time,
-          address,
-          genderPreference,
-        });
-        if (data.success) {
-          showAlert("Success", "Post updated successfully!");
-          navigation.goBack();
-        } else {
-          showAlert("Update Failed", data.message);
-        }
-      } else {
-        const formData = new FormData();
-        formData.append("title", title);
-        formData.append("class", className);
-        formData.append("subject", subject);
-        formData.append("board", board);
-        formData.append("salary", String(salary));
-        formData.append("time", time);
-        formData.append("address", address);
-        formData.append("genderPreference", genderPreference);
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("class", className);
+      formData.append("subject", subject);
+      formData.append("board", board);
+      formData.append("salary", String(salaryNum));
+      formData.append("time", time);
+      formData.append("address", address);
+      formData.append("genderPreference", genderPreference);
 
-        if (imageUri) {
-          const uriParts = imageUri.split(".");
-          const fileExt = uriParts[uriParts.length - 1];
-          formData.append("image", {
-            uri:
-              Platform.OS === "android"
-                ? imageUri
-                : imageUri.replace("file://", ""),
-            name: `post.${fileExt}`,
-            type: `image/${fileExt === "heic" ? "jpeg" : fileExt}`,
-          });
-        }
-
-        const { data } = await API.post("/posts", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+      // Handle image
+      if (imageUri && !imageUri.startsWith("http")) {
+        const uriParts = imageUri.split(".");
+        const fileExt = uriParts[uriParts.length - 1];
+        formData.append("image", {
+          uri: Platform.OS === "android" ? imageUri : imageUri.replace("file://", ""),
+          name: `post.${fileExt}`,
+          type: `image/${fileExt === "heic" ? "jpeg" : fileExt}`,
         });
-        if (data.success) {
-          showAlert("Success", "Post created successfully!");
-          navigation.goBack();
-        } else {
-          showAlert("Creation Failed", data.message);
+        console.log("📤 Adding new image to form data");
+      } else if (imageUri === null && editPost?.image?.url) {
+        formData.append("removeImage", "true");
+        console.log("🗑️ Image removal requested");
+      }
+
+      // screens/Admin/CreatePostScreen.js - Update the success handlers
+// screens/Admin/CreatePostScreen.js - Update the success handlers
+if (isEdit && editPost) {
+  console.log('🔄 Updating post:', editPost._id);
+  const { data } = await API.put(`/posts/${editPost._id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  if (data.success) {
+    showAlert("Success", "Post updated successfully!");
+    // Navigate back to the previous screen and pass refresh data
+    navigation.navigate({
+      name: 'MainTabs',
+      params: {
+        screen: 'Home',
+        params: {
+          refreshed: true,
+          updatedPost: data.post
         }
       }
-    } catch (err) {
-      console.error(
-        "Create/Update post error:",
-        err.response || err.message || err
-      );
-     showAlert('Error', err.response?.data?.message || err.message || 'Something went wrong');
+    });
+  } else {
+    showAlert("Update Failed", data.message);
+  }
+} else {
+  console.log('🆕 Creating new post');
+  const { data } = await API.post("/posts", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  if (data.success) {
+    showAlert("Success", "Post created successfully!");
+    // Navigate back to home tab
+    navigation.navigate({
+      name: 'MainTabs',
+      params: {
+        screen: 'Home',
+        params: { refreshed: true }
+      }
+    });
+  } else {
+    showAlert("Creation Failed", data.message);
+  }
+}    } catch (err) {
+      console.error("Create/Update post error:", err.response?.data || err.message || err);
+      showAlert("Error", err.response?.data?.message || err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <KeyboardAvoidingView
@@ -211,30 +235,30 @@ const takePhoto = async () => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Post Image</Text>
               <View style={styles.imageSection}>
-                {imageUri ? (
-                  <View style={styles.imagePreviewContainer}>
-                    <Image
-                      source={{ uri: imageUri }}
-                      style={styles.imagePreview}
-                    />
-                    <TouchableOpacity
-                      style={styles.removeImageButton}
-                      onPress={removeImage}
-                    >
-                      <Ionicons name="close-circle" size={24} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.imageUploadPlaceholder}>
-                    <MaterialIcons
-                      name="add-photo-alternate"
-                      size={48}
-                      color="#CBD5E1"
-                    />
-                    <Text style={styles.imageUploadText}>Add a photo</Text>
-                    <Text style={styles.imageUploadSubtext}>Optional</Text>
-                  </View>
-                )}
+{imageUri || editPost?.image?.url ? (
+  <View style={styles.imagePreviewContainer}>
+    <Image
+      source={{ uri: imageUri || editPost.image.url }}
+      style={styles.imagePreview}
+    />
+    <TouchableOpacity
+      style={styles.removeImageButton}
+      onPress={removeImage}
+    >
+      <Ionicons name="close-circle" size={24} color="#EF4444" />
+    </TouchableOpacity>
+  </View>
+) : (
+  <View style={styles.imageUploadPlaceholder}>
+    <MaterialIcons
+      name="add-photo-alternate"
+      size={48}
+      color="#CBD5E1"
+    />
+    <Text style={styles.imageUploadText}>Add a photo</Text>
+    <Text style={styles.imageUploadSubtext}>Optional</Text>
+  </View>
+)}
 
                 <View style={styles.imageButtonsContainer}>
                   <TouchableOpacity

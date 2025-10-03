@@ -23,7 +23,9 @@ import ProfileEditScreen from "../screens/ProfileEditScreen";
 import AboutScreen from '../screens/AboutScreen';
 import FavoritesScreen from "../screens/FavoritesScreen";
 import SearchScreen from "../screens/SearchScreen";
+import UserActivityHistoryScreen from '../screens/UserActivityHistoryScreen';
 import UserRatingsScreen from "../screens/UserRatingsScreen";
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -176,6 +178,11 @@ export default function AppNavigator() {
     headerStyle: { backgroundColor: '#667eea' },
     headerTintColor: '#FFFFFF',
   }}
+/>
+<Stack.Screen
+  name="UserActivityHistory"
+  component={UserActivityHistoryScreen}
+  options={{ headerShown: true, title: "Activity History" }}
 />
 
     </Stack.Navigator>

@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import FavoriteButton from '../components/FavoriteButton';
+import RatingModal from '../components/RatingModal';
 import SearchBar from '../components/SearchBar';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
@@ -25,6 +26,8 @@ export default function SearchScreen({ navigation }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+const [selectedUserForRating, setSelectedUserForRating] = useState(null);
   const [filters, setFilters] = useState({
     class: '',
     subject: '',
@@ -37,6 +40,20 @@ export default function SearchScreen({ navigation }) {
   });
 
   const { user } = useContext(AuthContext);
+
+  const handleRateUser = (post) => {
+  if (!post.createdBy || post.createdBy._id === user?.userId) {
+    Alert.alert('Info', 'You cannot rate yourself');
+    return;
+  }
+
+  setSelectedUserForRating({
+    userId: post.createdBy._id,
+    userName: post.createdBy.name,
+    postId: post._id
+  });
+  setRatingModalVisible(true);
+};
 
   const searchPosts = useCallback(async (query = searchQuery, filterParams = filters) => {
     if (!user) return;
@@ -88,6 +105,22 @@ export default function SearchScreen({ navigation }) {
       console.error('Suggestions error:', error);
     }
   }, []);
+
+  const handleRatingSubmit = async (ratingData) => {
+  try {
+    const response = await API.post('/ratings', ratingData);
+    if (response.data.success) {
+      Alert.alert('Success', 'Rating submitted successfully!');
+      setRatingModalVisible(false);
+      setSelectedUserForRating(null);
+    } else {
+      Alert.alert('Error', response.data.message);
+    }
+  } catch (error) {
+    console.error('Submit rating error:', error);
+    Alert.alert('Error', 'Failed to submit rating');
+  }
+};
 
   const handleSearchChange = (text) => {
     setSearchQuery(text);
@@ -191,15 +224,24 @@ export default function SearchScreen({ navigation }) {
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
-            <FavoriteButton
-              postId={post._id}
-              initialFavorited={post.isFavorited}
-              size={22}
-            />
-            <TouchableOpacity style={styles.menuButton}>
-              <MaterialIcons name="more-vert" size={22} color="#64748B" />
-            </TouchableOpacity>
-          </View>
+  <FavoriteButton
+    postId={post._id}
+    initialFavorited={post.isFavorited}
+    size={22}
+  />
+
+  {/* Rating Button */}
+  <TouchableOpacity
+    style={styles.rateButton}
+    onPress={() => handleRateUser(post)}
+  >
+    <MaterialIcons name="star-rate" size={22} color="#F59E0B" />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.menuButton}>
+    <MaterialIcons name="more-vert" size={22} color="#64748B" />
+  </TouchableOpacity>
+</View>
         </View>
 
         {/* Post Content */}
@@ -378,6 +420,17 @@ export default function SearchScreen({ navigation }) {
         onClose={() => setShowFilters(false)}
         onClear={clearFilters}
       />
+      <RatingModal
+  visible={ratingModalVisible}
+  onClose={() => {
+    setRatingModalVisible(false);
+    setSelectedUserForRating(null);
+  }}
+  ratedUserId={selectedUserForRating?.userId}
+  postId={selectedUserForRating?.postId}
+  userName={selectedUserForRating?.userName}
+  onSubmit={handleRatingSubmit}
+/>
     </View>
   );
 }
@@ -554,11 +607,17 @@ function FiltersModal({ visible, filters, onApply, onClose, onClear }) {
           </TouchableOpacity>
         </View>
       </View>
+
     </Modal>
+
   );
 }
 
 const styles = StyleSheet.create({
+  rateButton: {
+  padding: 8,
+  marginHorizontal: 4,
+},
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',

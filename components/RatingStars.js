@@ -1,6 +1,7 @@
+// components/RatingStars.js
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function RatingStars({
   rating,
@@ -10,6 +11,11 @@ export default function RatingStars({
   showLabel = false
 }) {
   const [currentRating, setCurrentRating] = useState(rating || 0);
+
+  // sync with parent prop changes
+  useEffect(() => {
+    setCurrentRating(rating || 0);
+  }, [rating]);
 
   const handleRatingPress = (newRating) => {
     if (!editable) return;

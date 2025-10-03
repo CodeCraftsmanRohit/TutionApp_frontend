@@ -26,6 +26,8 @@ export default function CommentsScreen({ route, navigation }) {
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+const [editingComment, setEditingComment] = useState(null);
+const [editText, setEditText] = useState('');
 
   const fetchComments = async () => {
     try {
@@ -47,7 +49,24 @@ export default function CommentsScreen({ route, navigation }) {
       fetchComments();
     }, [post._id])
   );
+const handleEditComment = async (commentId, newText) => {
+  try {
+    const res = await API.put(`/posts/${post._id}/comments/${commentId}`, {
+      text: newText.trim()
+    });
 
+    if (res.data.success) {
+      setEditingComment(null);
+      setEditText('');
+      fetchComments();
+    } else {
+      Alert.alert('Error', res.data.message);
+    }
+  } catch (error) {
+    console.error('Edit comment error:', error);
+    Alert.alert('Error', 'Failed to update comment');
+  }
+};
   const handleAddComment = async () => {
     if (!newComment.trim()) {
       Alert.alert('Error', 'Please enter a comment');
@@ -102,34 +121,83 @@ export default function CommentsScreen({ route, navigation }) {
     );
   };
 
-  const renderComment = ({ item }) => (
-    <View style={styles.commentCard}>
-      <View style={styles.commentHeader}>
-        {item.user?.profilePhoto?.url ? (
-          <Image source={{ uri: item.user.profilePhoto.url }} style={styles.commentAvatar} />
-        ) : (
-          <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
-            <MaterialIcons name="person" size={16} color="#666" />
-          </View>
-        )}
-        <View style={styles.commentUserInfo}>
-          <Text style={styles.commentUserName}>{item.user?.name || 'Unknown User'}</Text>
-          <Text style={styles.commentTime}>
-            {new Date(item.createdAt).toLocaleString()}
-          </Text>
+ const renderComment = ({ item }) => (
+  <View style={styles.commentCard}>
+    <View style={styles.commentHeader}>
+      {item.user?.profilePhoto?.url ? (
+        <Image source={{ uri: item.user.profilePhoto.url }} style={styles.commentAvatar} />
+      ) : (
+        <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
+          <MaterialIcons name="person" size={16} color="#666" />
         </View>
-        {(user.userId === item.user?._id || user.role === 'admin') && (
+      )}
+      <View style={styles.commentUserInfo}>
+        <Text style={styles.commentUserName}>{item.user?.name || 'Unknown User'}</Text>
+        <Text style={styles.commentTime}>
+          {new Date(item.createdAt).toLocaleString()}
+          {item.updatedAt && ' (edited)'}
+        </Text>
+      </View>
+
+      {/* Edit/Delete buttons - show if user owns comment or is admin */}
+      {(user.userId === item.user?._id || user.role === 'admin') && (
+        <View style={styles.commentActions}>
+          {/* Edit button - only show for comment owner */}
+          {user.userId === item.user?._id && (
+            <TouchableOpacity
+              onPress={() => {
+                setEditingComment(item);
+                setEditText(item.text);
+              }}
+              style={styles.editButton}
+            >
+              <MaterialIcons name="edit" size={18} color="#3498db" />
+            </TouchableOpacity>
+          )}
+
+          {/* Delete button - show for comment owner and admin */}
           <TouchableOpacity
             onPress={() => handleDeleteComment(item._id)}
             style={styles.deleteButton}
           >
             <MaterialIcons name="delete" size={18} color="#e74c3c" />
           </TouchableOpacity>
-        )}
-      </View>
-      <Text style={styles.commentText}>{item.text}</Text>
+        </View>
+      )}
     </View>
-  );
+
+    {editingComment?._id === item._id ? (
+      <View style={styles.editContainer}>
+        <TextInput
+          style={styles.editInput}
+          value={editText}
+          onChangeText={setEditText}
+          multiline
+          autoFocus
+        />
+        <View style={styles.editActions}>
+          <TouchableOpacity
+            style={styles.cancelEditButton}
+            onPress={() => {
+              setEditingComment(null);
+              setEditText('');
+            }}
+          >
+            <Text style={styles.cancelEditText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.saveEditButton}
+            onPress={() => handleEditComment(item._id, editText)}
+          >
+            <Text style={styles.saveEditText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    ) : (
+      <Text style={styles.commentText}>{item.text}</Text>
+    )}
+  </View>
+);
 
   return (
   <KeyboardAvoidingView
@@ -343,7 +411,7 @@ const styles = StyleSheet.create({
 
   inputContainer: {
     flexDirection: 'row',
-    paddingVertical: 14,
+    paddingVertical: 40,
     paddingHorizontal: 16,
     borderTopWidth: 0,
     alignItems: 'flex-end',
@@ -354,6 +422,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 18,
     elevation: 10,
+    bottom:5,
+
   },
 
   commentInput: {
@@ -361,7 +431,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 28,
     paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingVertical: 50,
     marginRight: 12,
     maxHeight: 120,
     backgroundColor: '#f2f9ff',
@@ -373,6 +443,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+
   },
 
   sendButton: {
@@ -397,4 +468,58 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.04)',
     shadowOpacity: 0.02,
   },
+  // Add to the styles in CommentsScreen.js
+commentActions: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+editButton: {
+  padding: 8,
+  borderRadius: 12,
+  backgroundColor: 'rgba(52, 152, 219, 0.1)',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: 8,
+},
+editContainer: {
+  marginTop: 8,
+},
+editInput: {
+  backgroundColor: '#FFFFFF',
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+  borderRadius: 12,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  fontSize: 14,
+  color: '#1E293B',
+  minHeight: 80,
+  textAlignVertical: 'top',
+},
+editActions: {
+  flexDirection: 'row',
+  justifyContent: 'flex-end',
+  marginTop: 8,
+  gap: 8,
+},
+cancelEditButton: {
+  paddingHorizontal: 16,
+  paddingVertical: 8,
+  borderRadius: 8,
+  backgroundColor: '#F1F5F9',
+},
+saveEditButton: {
+  paddingHorizontal: 16,
+  paddingVertical: 8,
+  borderRadius: 8,
+  backgroundColor: '#3498db',
+},
+cancelEditText: {
+  color: '#64748B',
+  fontWeight: '600',
+},
+saveEditText: {
+  color: '#FFFFFF',
+  fontWeight: '600',
+},
 });
