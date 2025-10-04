@@ -1,6 +1,10 @@
-# Welcome to your Expo app 👋
+## 📲 Download Tuition App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+You can install the latest Android version directly here:
+
+[![Download Tuition App](https://img.shields.io/badge/Download%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/CodeCraftsmanRohit/TutionApp_frontend/releases/tag/v1.0.0)
+
+> Click the button above to download and install the Tuition App on your Android device.
 
 ## Get started
 
